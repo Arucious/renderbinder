@@ -1,0 +1,11 @@
+{
+  "m1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "base.safetensors"}},
+  "m2": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "refiner.safetensors"}},
+  "p1": {"class_type": "CLIPTextEncode", "inputs": {"text": "wide mountain scene", "clip": ["m1", 1]}},
+  "n1": {"class_type": "CLIPTextEncode", "inputs": {"text": "low quality", "clip": ["m1", 1]}},
+  "p2": {"class_type": "CLIPTextEncodeSDXLRefiner", "inputs": {"text": "fine snow detail", "clip": ["m2", 1]}},
+  "n2": {"class_type": "CLIPTextEncodeSDXLRefiner", "inputs": {"text": "artifacts", "clip": ["m2", 1]}},
+  "a": {"class_type": "KSamplerAdvanced", "inputs": {"model": ["m1", 0], "positive": ["p1", 0], "negative": ["n1", 0], "noise_seed": 123, "steps": 30, "start_at_step": 0, "end_at_step": 20}},
+  "b": {"class_type": "KSamplerAdvanced", "inputs": {"model": ["m2", 0], "positive": ["p2", 0], "negative": ["n2", 0], "latent_image": ["a", 0], "noise_seed": 456, "steps": 30, "start_at_step": 20, "end_at_step": 30}},
+  "save": {"class_type": "SaveImage", "inputs": {"images": ["b", 0]}}
+}

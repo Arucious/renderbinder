@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=8,<10
+numpy>=2.2,<3
+ruff==0.17.2

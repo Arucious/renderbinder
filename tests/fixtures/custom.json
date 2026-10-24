@@ -1,0 +1,12 @@
+{
+  "model": {"class_type": "UNETLoader", "inputs": {"unet_name": "flux.safetensors"}},
+  "clip": {"class_type": "DualCLIPLoader", "inputs": {"clip_name1": "clip_l.safetensors", "clip_name2": "t5xxl.safetensors"}},
+  "text": {"class_type": "CLIPTextEncodeFlux", "inputs": {"clip": ["clip", 0], "clip_l": "a luminous garden", "t5xxl": "a very detailed luminous garden", "guidance": 3.5}},
+  "guide": {"class_type": "BasicGuider", "inputs": {"model": ["model", 0], "conditioning": ["text", 0]}},
+  "noise": {"class_type": "RandomNoise", "inputs": {"noise_seed": 9007199254740993}},
+  "algorithm": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "dpmpp_2m"}},
+  "schedule": {"class_type": "BasicScheduler", "inputs": {"model": ["model", 0], "scheduler": "simple", "steps": 20, "denoise": 0.9}},
+  "sample": {"class_type": "SamplerCustomAdvanced", "inputs": {"guider": ["guide", 0], "noise": ["noise", 0], "sampler": ["algorithm", 0], "sigmas": ["schedule", 0]}},
+  "alien": {"class_type": "AlienImageTransform", "inputs": {"image": ["sample", 0], "unrecognized": "keep me", "amount": 0.25}},
+  "save": {"class_type": "SaveImage", "inputs": {"images": ["alien", 0]}}
+}

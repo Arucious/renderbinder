@@ -1,0 +1,30 @@
+name: Optional semantic model smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model to download and test on CPU
+        type: choice
+        options: [bge-small, embeddinggemma2]
+        default: bge-small
+
+permissions:
+  contents: read
+
+jobs:
+  semantic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.12.8'
+          python-version: '3.13'
+          enable-cache: true
+      - run: uv sync --locked --extra semantic
+      - name: Encode synthetic prompts
+        env:
+          MODEL: ${{ inputs.model }}
+        run: uv run --locked --extra semantic python tests/semantic_model_smoke.py --model "$MODEL"

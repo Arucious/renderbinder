@@ -1,0 +1,17 @@
+{
+  "save": {"class_type": "SaveImage", "inputs": {"filename_prefix": "krea2_identity_edit", "images": ["decode", 0]}},
+  "sampler": {"class_type": "KSampler", "inputs": {"seed": 747179872800581, "steps": 6, "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0, "model": ["edit-model", 0], "positive": ["grounded-positive", 0], "negative": ["grounded-negative", 0], "latent_image": ["latent", 0]}},
+  "decode": {"class_type": "VAEDecode", "inputs": {"samples": ["sampler", 0], "vae": ["vae", 0]}},
+  "unet": {"class_type": "UNETLoader", "inputs": {"unet_name": "Krea2Realism_V1.safetensors", "weight_dtype": "default"}},
+  "clip": {"class_type": "CLIPLoader", "inputs": {"clip_name": "qwen3vl_4b_fp8_scaled.safetensors", "type": "krea2", "device": "default"}},
+  "vae": {"class_type": "VAELoader", "inputs": {"vae_name": "qwen_image_vae.safetensors"}},
+  "lora": {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["unet", 0], "lora_name": "krea2_identity_edit_v2.safetensors", "strength_model": 1.0}},
+  "source": {"class_type": "LoadImage", "inputs": {"image": "source.png"}},
+  "reference": {"class_type": "LoadImage", "inputs": {"image": "reference.png"}},
+  "source-latent": {"class_type": "VAEEncode", "inputs": {"pixels": ["source", 0], "vae": ["vae", 0]}},
+  "edit-model": {"class_type": "Krea2EditModelPatch", "inputs": {"model": ["lora", 0], "source_latent": ["source-latent", 0], "vae": ["vae", 0], "source_image": ["source", 0], "source_image_b": ["reference", 0], "target_latent": ["latent", 0], "ref_boost": 4.0}},
+  "latent": {"class_type": "EmptySD3LatentImage", "inputs": {"width": 1448, "height": 1448, "batch_size": 1}},
+  "grounded-positive": {"class_type": "Krea2EditGroundedEncode", "inputs": {"prompt": "Keep the cabin architecture and change the scene to a snowy morning, cinematic lighting.", "grounding_px": 768, "system_prompt": "System instructions are not the user image prompt.", "clip": ["clip", 0], "image": ["source", 0], "image_b": ["reference", 0]}},
+  "grounded-negative": {"class_type": "Krea2EditGroundedEncode", "inputs": {"prompt": "", "grounding_px": 768, "system_prompt": "", "clip": ["clip", 0], "image": ["source", 0], "image_b": ["reference", 0]}},
+  "unused": {"class_type": "Krea2EditGroundedEncode", "inputs": {"prompt": "Disconnected desert prompt.", "clip": ["clip", 0], "image": ["source", 0]}}
+}

@@ -1,0 +1,101 @@
+// Isolated long-prompt expansion and comparison checks; never modifies the real library.
+const {launchBrowser} = require('./browser_helpers.cjs');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const qa = path.resolve('.qa');
+const base = 'http://127.0.0.1:8766';
+let browser, page, originalSettings;
+async function api(route, method='GET', body) {
+  const response = await fetch(base+'/api'+route,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  assert.ok(response.ok,await response.clone().text());return response.json();
+}
+async function until(predicate) {
+  const deadline=Date.now()+15000;
+  while(Date.now()<deadline){if(await predicate())return;await new Promise(r=>setTimeout(r,150));}
+  throw new Error('Timed out waiting for prompt comparison state');
+}
+(async()=>{
+  const config=await api('/settings');
+  assert.equal(config.data_dir,path.join(qa,'data'),'Only the isolated QA library may be modified');
+  originalSettings=config;
+  const source=path.join(qa,'prompt-diff-source');
+  await api('/settings','PUT',{roots:[...config.roots,source],comfy_url:config.comfy_url});
+  await until(async()=> (await api('/images?unique_prompts=true&q=Prompt%20comparison%20fixture')).total===2);
+  const groups=(await api('/images?unique_prompts=true&q=Prompt%20comparison%20fixture')).items;
+  const a=groups.find(g=>g.filename==='compare_a.png'), b=groups.find(g=>g.filename==='compare_b.png');
+  assert.ok(a&&b);
+  const textA=(await api('/images/'+a.id+'/prompt')).positive;
+  const textB=(await api('/images/'+b.id+'/prompt')).positive;
+  assert.ok(textA.length>600&&textB.length>600);
+  browser=await launchBrowser();
+  const context=await browser.newContext({viewport:{width:1440,height:1000},permissions:['clipboard-read','clipboard-write']});
+  page=await context.newPage();
+  const errors=[];let originalRequests=0;
+  const promptRequests=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  page.on('request',request=>{if(/\/original(?:\?|$)/.test(request.url()))originalRequests++;if(/\/prompt$/.test(request.url()))promptRequests.push(request.url());});
+  await page.goto(base);
+  await page.getByRole('button',{name:/^Prompt library/}).click();
+  await page.getByRole('textbox',{name:'Search library'}).fill('Prompt comparison fixture');
+  await page.waitForFunction(()=>document.querySelectorAll('.prompt-group-card').length===2);
+  const cardA=page.locator('.prompt-group-card').filter({has:page.locator('#prompt-text-'+a.positive_hash)});
+  assert.equal(await cardA.locator('.prompt-group-text').textContent(),textA.slice(0,600));
+  assert.equal(promptRequests.length,0,'Full prompts should not load until requested');
+  await cardA.getByRole('button',{name:'Expand prompt',exact:true}).click();
+  await page.waitForFunction(({id,text})=>document.getElementById(id)?.textContent===text,{id:'prompt-text-'+a.positive_hash,text:textA});
+  assert.equal(await cardA.getByRole('button',{name:'Collapse prompt',exact:true}).getAttribute('aria-expanded'),'true');
+  assert.equal(await page.locator('.detail-layout').count(),0);
+  assert.equal(originalRequests,0,'Expansion must not request original images');
+  await page.screenshot({path:path.join(qa,'prompt-expanded-desktop.png'),fullPage:true});
+  await cardA.getByRole('button',{name:'Collapse prompt',exact:true}).click();
+  await cardA.getByRole('button',{name:'Expand prompt',exact:true}).click();
+  assert.equal(promptRequests.filter(url=>url.includes(a.id)).length,1,'Expanded text should be reused');
+  await cardA.getByRole('button',{name:'Select prompt for comparison',exact:true}).click();
+  await cardA.getByRole('button',{name:'Collapse prompt',exact:true}).click();
+  // Keep A selected while finding B through a different search.
+  await page.getByRole('textbox',{name:'Search library'}).fill('blue scarf');
+  await page.waitForFunction(()=>document.querySelectorAll('.prompt-group-card').length===1);
+  const cardB=page.locator('.prompt-group-card').filter({has:page.locator('#prompt-text-'+b.positive_hash)});
+  await cardB.getByRole('button',{name:'Select prompt for comparison',exact:true}).click();
+  await page.getByRole('button',{name:'Compare prompts',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'Compare prompts',exact:true});
+  await dialog.locator('.prompt-diff-panel').first().waitFor();
+  await dialog.getByRole('button',{name:'Jump to changes',exact:true}).click();
+  assert.equal(await dialog.locator('.diff-before .prompt-diff-text').textContent(),textA);
+  assert.equal(await dialog.locator('.diff-after .prompt-diff-text').textContent(),textB);
+  assert.equal(await dialog.locator('.diff-removed').textContent(),'red');
+  assert.equal(await dialog.locator('.diff-added').textContent(),'blue');
+  assert.ok((await dialog.locator('.prompt-diff-summary').innerText()).includes('3 characters removed'));
+  assert.ok((await dialog.locator('.prompt-diff-summary').innerText()).includes('4 characters added'));
+  assert.equal(await dialog.locator('.prompt-diff-text script').count(),0);
+  assert.equal(await page.evaluate(()=>window.promptDiffExecuted),undefined);
+  await page.screenshot({path:path.join(qa,'prompt-diff-desktop.png'),fullPage:true});
+  await dialog.getByRole('button',{name:'Swap A and B',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.diff-removed')?.textContent==='blue');
+  assert.equal(await dialog.locator('.diff-before .prompt-diff-text').textContent(),textB);
+  await dialog.getByRole('button',{name:'Copy prompt B',exact:true}).click();
+  await until(async()=> (await page.evaluate(()=>navigator.clipboard.readText())).replace(/\r\n/g,'\n')===textA.replace(/\r\n/g,'\n'));
+  await page.keyboard.press('Escape');
+  await page.getByRole('textbox',{name:'Search library'}).fill('Prompt comparison fixture');
+  await page.waitForFunction(()=>document.querySelectorAll('.prompt-group-card').length===2);
+  await page.setViewportSize({width:390,height:844});
+  await page.waitForFunction(()=>document.querySelector('.sidebar').getBoundingClientRect().right<=1);
+  await cardA.getByRole('button',{name:'Expand prompt',exact:true}).click();
+  await page.waitForFunction(({id,text})=>document.getElementById(id)?.textContent===text,{id:'prompt-text-'+a.positive_hash,text:textA});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  await page.screenshot({path:path.join(qa,'prompt-expanded-mobile.png'),fullPage:true});
+  await page.getByRole('button',{name:'Compare prompts',exact:true}).click();
+  await page.getByRole('dialog',{name:'Compare prompts',exact:true}).locator('.prompt-diff-panel').first().waitFor();
+  await page.waitForFunction(()=>document.querySelector('.diff-before .prompt-diff-text').scrollTop>0);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  await page.screenshot({path:path.join(qa,'prompt-diff-mobile.png'),fullPage:true});
+  await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Clear prompt comparison selection',exact:true}).click();
+  assert.equal(await page.locator('.prompt-selection-bar').count(),0);
+  assert.equal(originalRequests,0,'Prompt-only comparison must never load original images');
+  assert.deepEqual(errors,[]);
+  console.log('Prompt expansion/diff browser checks passed: full text beyond 600 characters, cached expansion, cross-search selection, exact word highlights, swap/copy, literal markup, keyboard close, mobile layout, no original image requests.');
+})().catch(async error=>{console.error(error);if(page)await page.screenshot({path:path.join(qa,'prompt-diff-error.png'),fullPage:true}).catch(()=>{});process.exitCode=1;}).finally(async()=>{
+  if(originalSettings)await api('/settings','PUT',{roots:originalSettings.roots,comfy_url:originalSettings.comfy_url}).catch(()=>{});
+  await browser?.close();
+});
