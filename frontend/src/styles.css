@@ -1849,6 +1849,9 @@ summary {
 .detail-tab-content {
   min-height: 190px;
 }
+.detail-seed {
+  margin-bottom: 20px;
+}
 .prompt-block {
   margin-bottom: 20px;
 }

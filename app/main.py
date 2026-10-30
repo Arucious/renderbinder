@@ -81,7 +81,7 @@ def create_app(data_dir: Path | None = None, *, watch: bool = True):
         semantic.close()
         playback.close()
 
-    app = FastAPI(title="Latent Library", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="RenderBinder", version="1.0.0", lifespan=lifespan)
     app.state.settings, app.state.db, app.state.indexer = settings, db, indexer
     app.state.semantic = semantic
     app.state.playback = playback

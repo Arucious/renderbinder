@@ -484,7 +484,7 @@ function App() {
             <Layers size={23} strokeWidth={1.8} />
           </span>
           <span>
-            Latent Library<small>COMFYUI IMAGE GALLERY</small>
+            RenderBinder<small>COMFYUI IMAGE GALLERY</small>
           </span>
         </a>
         <div className="workspace-label">
@@ -2460,6 +2460,21 @@ function DetailModal({
               )}
               {tab === "prompts" && (
                 <>
+                  <div className="detail-seed">
+                    <Parameter
+                      name="Seed"
+                      value={image.metadata.settings.seed?.join(" / ")}
+                      onCopy={
+                        image.metadata.settings.seed?.length
+                          ? () =>
+                              copy(
+                                image.metadata.settings.seed.join(", "),
+                                "Seed copied",
+                              )
+                          : undefined
+                      }
+                    />
+                  </div>
                   {image.prompt_documents?.some(
                     (d) => d.scope !== "positive",
                   ) ? (

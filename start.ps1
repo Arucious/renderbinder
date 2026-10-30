@@ -78,7 +78,7 @@ if ($needsBuild) {
     } finally { Pop-Location }
 }
 
-Write-Host "`nLatent Library is starting at http://127.0.0.1:$Port" -ForegroundColor Green
+Write-Host "`nRenderBinder is starting at http://127.0.0.1:$Port" -ForegroundColor Green
 Write-Host 'Add your ComfyUI output folder in Settings & sources. Press Ctrl+C to stop.'
 if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$Port" }
 & $python -m uvicorn app.main:app --host 127.0.0.1 --port $Port

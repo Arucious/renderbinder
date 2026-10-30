@@ -1,4 +1,4 @@
-# Working on Latent Library
+# Working on RenderBinder
 
 This is a local ComfyUI media gallery and prompt manager. The same source runs on Windows and Linux. Start with [docs/cloud-development.md](docs/cloud-development.md) for reproducible setup and [docs/metadata-architecture.md](docs/metadata-architecture.md) for parser extension points.
 

@@ -1,8 +1,8 @@
-# Latent Library
+# RenderBinder
 
 A local ComfyUI image and video gallery and prompt manager for Windows. FastAPI, SQLite/FTS5, Pillow, Watchdog, React, TypeScript, and Vite. Source media is read only. Browsing, extraction, and inference run locally; optional semantic models download during setup.
 
-For Linux, cloud agents, locked installs and CI, see [cloud development](docs/cloud-development.md). Repository instructions are in [AGENTS.md](AGENTS.md).
+For Linux, cloud agents, locked installs and CI, see [cloud development](docs/cloud-development.md). Repository instructions are in [AGENTS.md](AGENTS.md). Licensed under the [MIT License](LICENSE).
 
 ## Run on Windows
 
@@ -11,7 +11,8 @@ Prerequisites: **Python 3.11+** and **Node.js 22+ with npm**. [Python downloads]
 Double-click **start.cmd**, or run:
 
 ```powershell
-cd C:\dev\comfyui-metadata-binder
+git clone https://github.com/Arucious/renderbinder.git C:\dev\renderbinder
+cd C:\dev\renderbinder
 .\start.ps1
 ```
 

@@ -1,6 +1,8 @@
 [project]
-name = "comfyui-metadata-binder"
+name = "renderbinder"
 version = "1.0.0"
+license = "MIT"
+license-files = ["LICENSE"]
 description = "A local, read-only ComfyUI output gallery and prompt library"
 requires-python = ">=3.11"
 dependencies = [

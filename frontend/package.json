@@ -1,6 +1,7 @@
 {
-  "name": "latent-library",
+  "name": "renderbinder",
   "version": "1.0.0",
+  "license": "MIT",
   "private": true,
   "packageManager": "pnpm@11.25.0",
   "engines": {
