@@ -711,7 +711,7 @@ function App() {
             >
               <Settings2 size={18} />
             </button>
-            <span className="avatar">L</span>
+            <span className="avatar">R</span>
           </div>
         </header>
         <div className="content-inner">
